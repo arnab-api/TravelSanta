@@ -24,12 +24,13 @@ class User extends Authenticatable
         'password', 'remember_token',
     ];
 
+    //One to one relationship
     public function Post(){
         return $this->hasOne('App\Post');
     }
 
     public function posts(){
-        return $this->hasMany('App\Posts');
+        return $this->hasMany('App\Post');
     }
 
     public function roles(){

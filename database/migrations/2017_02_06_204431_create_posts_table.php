@@ -14,8 +14,12 @@ class CreatePostsTable extends Migration
     {
         Schema::create('posts', function (Blueprint $table) {
             $table->increments('id');
+            $table->integer('user_id');
             $table->string('title');
-            $table->string('review');
+            $table->integer('img start');
+            $table->integer('img end');
+            $table->text('review');
+            $table->integer('rating')->unsigned();
             $table->timestamps();
         });
     }
