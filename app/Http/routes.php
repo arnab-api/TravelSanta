@@ -13,6 +13,8 @@
 
 use App\Post;
 use App\User;
+use App\Photo;
+use App\Address;
 
 //Route::get('/', function () {
 //    return view('welcome');
@@ -72,8 +74,24 @@ Route::get('/delete', function () {
 //});
 
 Route::resource('/posts' , 'PostsController');
+Route::resource('/users' , 'UserController');
 Route::resource('/image' , 'ImageUploadController');
+Route::resource('/addMainService' , 'MainServiceController');
+Route::resource('/addAdditionalService' , 'AdditionalServiceController');
+Route::resource('/comment' , 'CommentController');
+Route::resource('/reply' , 'ReplyController');
+
 Route::get('/search' , 'SearchController@store');
+Route::get('/showProfile' , 'UserController@showProfile');
+Route::get('/posts/search' , 'SearchController@store');
+Route::get('/editPost/{id}' , 'PostsController@editFormDisplay');
+Route::post('/savePost' , 'PostsController@saveEdited');
+Route::get('/editProfile/{id}' , 'UserController@editFormDisplay');
+Route::post('/saveProfile' , 'UserController@saveEdited');
+
+Route::get('/editMainService/{id}' , 'MainServiceController@editFormDisplay');
+Route::post('/updateMainService' , 'MainServiceController@saveEdited');
+Route::post('/deleteAdditionalService' , 'AdditionalServiceController@destroy');
 
 /// Elequent
 
@@ -189,3 +207,9 @@ Route::post('/search' , 'SearchController@store');
 Route::get('/imgpost' , function(){
     return view('imgUpload');
 });
+
+Route::get('/display/{postId}' , 'PostsController@postDisplay');
+Route::get('/displayHotel/{postId}' , 'MainServiceController@show');
+
+
+Route::get('/findHotel' , 'SearchHotelController@store');

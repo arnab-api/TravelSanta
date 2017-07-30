@@ -5,6 +5,13 @@ namespace App\Http\Controllers;
 use Auth;
 use DB;
 use App\Post;
+use App\Photo;
+use App\User;
+use App\Hotel;
+use App\Service;
+use App\Comment;
+use App\Reply;
+
 use Illuminate\Http\Request;
 
 use App\Http\Requests;
@@ -19,10 +26,10 @@ class PostsController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function __construct()
+/*    public function __construct()
     {
         $this->middleware('auth');
-    }
+    }*/
 
     public function index()
     {
@@ -40,7 +47,19 @@ class PostsController extends Controller
     public function create()
     {
         //return 'I am the method that creates :p';
-        return view('posts.create');
+        try {
+            $isManager = Auth::user()->is_admin;
+
+            //echo "Hiii".$isManager;
+
+            if ($isManager == 0) return view('posts.create');
+            else {
+                //echo "HI";
+                return view('mainService');
+            }
+        }catch(\Exception $e){
+            return redirect('\tslogin');
+        }
         //return redirect('/check');
     }
 
@@ -103,7 +122,15 @@ class PostsController extends Controller
 
         //// Main kapzap starts here
 
+        try {
+            $this->addPost($request);
+            return redirect('/');
+        }catch(\Exception $e){
+            return redirect('/tslogin');
+        }
+    }
 
+    public function addPost(Request $request){
         $rate =  $request->rating[0] - '0';
         $userId = Auth::user()->id;
 
@@ -126,12 +153,12 @@ class PostsController extends Controller
             if($tags[$i] == "forest") $tag->forest = 1;
             if($tags[$i] == "green") $tag->green = 1;
 
-            echo $tags[$i]."<br>";
+            //echo $tags[$i]."<br>";
         }
         $tag->post_id = $postId->id;
         $tag->save();
 
-        echo $request->distList;
+        //echo $request->distList;
 
         $add = new Address();
         $add->post_id = $postId->id;
@@ -139,11 +166,52 @@ class PostsController extends Controller
         $add->Address = $request->address;
         $add->save();
 
-        echo $add->District;
-        echo $request->address;
+        //echo $add->District;
 
 
-        //return $post->id;
+        //$input = $request->file('img');
+        //echo "<br>"."Called =======>".sizeof($input);
+        if($request->hasFile('img')) $this->imageUpload($request , $postId->id);
+        //return $post->id  ;
+    }
+
+    public function imageUpload(Request $request , $postId){
+
+        $input = $request->file('img');
+        //echo "<br>"."Called =======>".sizeof($input);
+
+//        foreach($input as $image){
+//            //echo "<br>"."=======>".$image->getClientOriginalName();
+//        }
+
+        $pstArr = Post::all();
+        $len = sizeof($pstArr);
+
+        //echo "<br>"."=======>";
+
+        $cnt = 1;
+        foreach($input as $img){
+            $ext = $img->getClientOriginalExtension();
+
+            //echo "<br>"."=======>";
+            //echo $ext."<br>";
+
+            if($ext == 'jpg' || $ext == 'png') {
+                $name = $cnt.".".$img->getClientOriginalExtension();
+                $cnt++;
+                $img->move('images/posts/'.$postId, $name);
+
+                $photo = new Photo();
+                $photo->description = "No description";
+                $photo->post_id = $postId;
+                $photo->path = "images/posts/".$postId."/".$name;
+                $photo->save();
+
+                //echo "successfully uploaded" . "<br>";
+            }
+        }
+
+        //echo "Process terminated";
     }
 
     /**
@@ -152,10 +220,79 @@ class PostsController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($postId)
     {
-        $posts = Post::findorfail($id);
-        return view('posts.show' , compact('posts'));
+        $allPost = Post::all();
+
+        $found = false;
+        $title = "Not available";
+        $review = "Not available";
+        $author = "John Doe";
+        $userId = 0;
+        $address = "Not available";
+
+        foreach($allPost as $post){
+            if($post->id == $postId){
+                $found = true;
+                $title = $post->title;
+                $review = $post->review;
+                $userId = $post->user_id;
+                break;
+            }
+        }
+
+        if($found == true) {
+
+            $allUser = User::all();
+            foreach ($allUser as $user) {
+                if ($user->id == $userId) {
+                    $author = $user->name;
+                }
+            }
+
+            $size = 0;
+
+            $allImg = Photo::all();
+            foreach($allImg as $img){
+                if($img->post_id == $postId) $size++;
+            }
+
+            $imgArr = array_fill(0 , $size , null);
+            $cnt = 0;
+            foreach($allImg as $img){
+                if($img->post_id == $postId){
+                    $imgArr[$cnt] = $img->path;
+                    $cnt++;
+                }
+            }
+
+            $allAdd = Address::all();
+
+            foreach($allAdd as $add){
+                if($add->post_id == $postId){
+                    $address = $add->Address;
+                    break;
+                }
+            }
+
+            $addr = $address;
+            $descr = $review;
+
+//            echo $title."<br>";
+//            echo $author."<br>";
+//            echo $review."<br>";
+//            echo $address."<br>";
+//
+//
+//            foreach($imgArr as $path){
+//                echo $path."<br>";
+//            }
+            return view('display' , compact('userId', 'postId' , 'imgArr' , 'title' , 'author' , 'addr' , 'descr'));
+
+        }
+        else{
+            echo "No such posts found    lhlkajsdhfkj "."<br>";
+        }
     }
 
     /**
@@ -166,8 +303,151 @@ class PostsController extends Controller
      */
     public function edit($id)
     {
-        $it = Post::findorfail($id);
-        return view('posts.edit' , compact('it'));
+        echo "Edit method called";
+    }
+
+    public function editFormDisplay($id){
+        //echo "HI HI HI ===> ".$id;
+        //try {
+            $allPost = Post::all();
+            $post = new Post();
+            foreach ($allPost as $pst) {
+                if ($pst->id == $id) {
+                    $post = $pst;
+                    break;
+                }
+            }
+
+            $title = $post->title;
+            $review = $post->review;
+            $user_id = $post->user_id;
+            if (Auth::user()->id != $user_id) return redirect()->back();
+
+            $allAddress = Address::all();
+            $address = new Address();
+            foreach($allAddress as $ad){
+                if($ad->post_id == $id){
+                    $address = $ad;
+                    break;
+                }
+            }
+
+            $allTag = Tag::all();
+            $tag = new Tag();
+            $post_id = $id;
+            foreach($allTag as $tg){
+                if($tg->post_id == $post_id){
+                    $tag = $tg;
+                    break;
+                }
+            }
+
+            $district = $address->District;
+            $detailAdd = $address->Address;
+            return view('editPost', compact('post_id' , 'title', 'review','district','detailAdd' , 'tag'));
+//        }catch(\Exception $e){
+//            return redirect('\tslogin');
+//        }
+    }
+
+    public function saveEdited(Request $request){
+        echo $request->post_id;
+        $post = Post::find($request->post_id);
+        $post->title = $request->placeTitle;
+        $post->review = $request->placeDes;
+        $post->save();
+        $post_id = $post->id;
+
+        $allAddress = Address::all();
+        foreach($allAddress as $ad){
+            if($ad->post_id == $post_id){
+                $adId = $ad->id;
+                break;
+            }
+        }
+        $address = Address::find($adId);
+        $address->District = $request->dist;
+        $address->Address = $request->address;
+        $address->save();
+
+        $allTag = Tag::all();
+        $tag = new Tag();
+        foreach($allTag as $tg){
+            if($tg->post_id == $post_id){
+                $tag = $tg;
+                break;
+            }
+        }
+        if($request->hills == "on") $tag->hills = 1;
+        else $tag->hills = 0;
+        if($request->sea == "on") $tag->sea = 1;
+        else $tag->sea = 0;
+        if($request->heritage == "on") $tag->heritage = 1;
+        else $tag->heritage = 0;
+        if($request->architecture == "on") $tag->architecture = 1;
+        else $tag->architecture = 0;
+        if($request->river == "on") $tag->river = 1;
+        else $tag->river = 0;
+        if($request->riverside == "on") $tag->riverside = 1;
+        else $tag->riverside = 0;
+        if($request->lake == "on") $tag->lake = 1;
+        else $tag->lake = 0;
+        if($request->forest == "on") $tag->forest = 1;
+        else $tag->forest = 0;
+        if($request->green == "on") $tag->green = 1;
+        else $tag->green = 0;
+
+        $tag->save();
+
+        $allImg = Photo::all();
+        if($request->deletePrevImages == "on"){
+            foreach($allImg as $img) if($img->post_id == $post->id) $img->delete();
+        }
+        $cnt = 0;
+        foreach($allImg as $img) if($img->post_id == $post->id) {
+            $val = 0;
+            $name = $img->path;
+            $id = 0;
+            for($i = 0 ; $i<strlen($name) ; $i++){
+                if($name[$i] == '.') {
+                    $id = $i;
+                    break;
+                }
+            }
+            //echo ">>>>>> ".$id.'<br>';
+            $power = 0;
+            for($j = $id-1 ; $j>=0 && $name[$j] != '/' ; $j--) {
+                $val = $val + $name[$j]*pow(10 , $power);
+                $power++;
+                //echo "--> ".$name[$j];
+            }
+            //echo "=====> ".$val.'<br>';
+            $cnt = max($cnt , $val);
+        }
+
+        $cnt++;
+
+        //echo $cnt.'<br>';
+        $input = $request->file('img');
+        if($request->hasFile('img')){
+            foreach ($input as $img) {
+                $ext = $img->getClientOriginalExtension();
+                if ($ext == 'jpg' || $ext == 'png') {
+                    $name = $cnt . "." . $img->getClientOriginalExtension();
+                    $cnt++;
+                    $img->move('images/posts/' . $post_id, $name);
+
+                    $photo = new Photo();
+                    $photo->description = "No description";
+                    $photo->post_id = $post_id;
+                    $photo->path = "images/posts/" . $post_id . "/" . $name;
+                    $photo->save();
+
+                    //echo $img." successfully uploaded".'<br>';
+                }
+            }
+        }
+        return redirect('/display/'.$request->post_id);
     }
 
     /**
@@ -203,29 +483,9 @@ class PostsController extends Controller
         DB::delete('delete from Posts where id = ?' , [$id]);
         return redirect('/posts');
     }
-    
-    public function ShowContact(){
-        //return "contact page";
-        $people = ['Arnab' , 'Mridul' , 'Nazim' , 'Moudud' , 'Talat'];
-        //$people = [];
-        return view('contact' , compact('people'));
-        //return view('Pages.demo');
-    }
-    
-    public function showPost($id , $name , $reg){
-        //return view('post') -> with('id' , $id);
-        return view('post' , compact('id' , 'name' , 'reg')); 
-    }
-
-//    public function searchByTag($tag){
-//        //return $tag;
-//        $alltags = Tag::all();
-//        for($i = 0 ; $i<sizeof($alltags) ; $i++){
-//            if($alltags[$i]->$tag == 1) echo $alltags[$i]->post_id."<br>";
-//        }
-//    }
 
     public function searchByTag($tagarr){
+        echo "called"."<br>";
         $searchtags = explode("+" , $tagarr);
         foreach($searchtags as $tag) echo $tag."<br>";
 
@@ -254,5 +514,121 @@ class PostsController extends Controller
         }
 
         if($found == 0) echo "No posts found in ".$dist;
+    }
+
+    public function postDisplay($postId){
+        $allPost = Post::all();
+        $found = false;
+        $title = "Not available";
+        $review = "Not available";
+        $author = "John Doe";
+        $userId = 0;
+        $address = "Not available";
+
+        foreach($allPost as $post){
+            if($post->id == $postId){
+                $found = true;
+                $title = $post->title;
+                $review = $post->review;
+                $userId = $post->user_id;
+                break;
+            }
+        }
+
+        if($found == true) {
+
+            $allUser = User::all();
+            foreach ($allUser as $user) {
+                if ($user->id == $userId) {
+                    $author = $user->name;
+                }
+            }
+
+            $size = 0;
+
+            $allImg = Photo::all();
+            foreach($allImg as $img){
+                if($img->post_id == $postId) $size++;
+            }
+
+            $imgArr = array_fill(0 , $size , null);
+            $cnt = 0;
+            foreach($allImg as $img){
+                if($img->post_id == $postId){
+                    $imgArr[$cnt] = $img->path;
+                    $cnt++;
+                }
+            }
+
+            $allAdd = Address::all();
+
+            foreach($allAdd as $add){
+                if($add->post_id == $postId){
+                    $address = $add->Address;
+                    break;
+                }
+            }
+
+            $addr = $address;
+            $descr = $review;
+
+//            echo $title."<br>";
+//            echo $author."<br>";
+//            echo $review."<br>";
+//            echo $address."<br>";
+//
+//
+//            foreach($imgArr as $path){
+//                echo $path."<br>";
+//            }
+
+
+            $allComment = Comment::all();
+            $allReply = Reply::all();
+
+            $size = 0;
+            foreach($allComment as $comment) if($comment->post_id == $postId) $size++;
+
+            $commentContent = array_fill(0 , $size , null);
+            $commentAuthor = array_fill(0 , $size , null);
+            $replyContent = array_fill(0 , $size , null);
+            $replyAuthor = array_fill(0 , $size , null);
+
+            $cnt = 0;
+            foreach($allComment as $comment){
+                if($comment->post_id == $postId){
+                    $commentContent[$cnt] = $comment->content;
+                    $commentAuthor[$cnt] = $comment->author." : ";
+
+                    $sz = 0;
+                    foreach($allReply as $reply) if($reply->comment_id == $comment->id) $sz++;
+                    $replyContent[$cnt] = array_fill(0 , $sz , null);
+                    $replyAuthor[$cnt] = array_fill(0 , $sz , null);
+
+                    $i = 0;
+                    foreach($allReply as $reply) if($reply->comment_id == $comment->id){
+                        $replyContent[$cnt][$i] = $reply->content;
+                        $replyAuthor[$cnt][$i] = $reply->author;
+
+                        $i++;
+                    }
+
+                    $cnt++;
+                }
+            }
+
+            $showEdit = 0;
+            try{
+                if(Auth::user()->id == $userId) $showEdit = 1;
+            }catch(\Exception $e){
+
+            }
+
+            return view('display' , compact('userId' , 'showEdit' , 'postId', 'imgArr' , 'title' , 'author' , 'addr' , 'descr' , 'commentAuthor' , 'commentContent'));
+
+        }
+        else{
+            echo "No such posts found lalalalal"."<br>";
+        }
     }
 }

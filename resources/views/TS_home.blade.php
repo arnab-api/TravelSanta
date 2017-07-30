@@ -45,8 +45,8 @@
     </div>
   </div>
   <div class="banner-right-text">
-    <h3 class="tittle">Something More...</h3>
-    <div class="general-news">
+    <h3 class="tittle">Advertisement..</h3>
+    <div class="general-Snews">
       <div class="general-inner">
       </div>
     </div>

@@ -3014,10 +3014,8 @@ input[type="button"].btn-block {
   z-index: 1000;
   display: none;
   float: left;
-  min-width: 160px;
-  padding: 5px 0;
-  margin: 2px 0 0;
-  font-size: 14px;
+  margin-top: 50px;
+  font-size: 18px;
   list-style: none;
   background-color: #fff;
   background-clip: padding-box;
@@ -3041,10 +3039,11 @@ input[type="button"].btn-block {
   display: block;
   padding: 3px 20px;
   clear: both;
-  font-weight: normal;
+  font-weight: 600;
   line-height: 1.42857143;
   color: #333;
   white-space: nowrap;
+  margin-left: 20px;
 }
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus {

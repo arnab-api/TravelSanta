@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 
 use App\Http\Requests;
 use App\Photo;
+use App\Post;
+use Input;
 
 class ImageUploadController extends Controller
 {
@@ -37,22 +39,46 @@ class ImageUploadController extends Controller
      */
     public function store(Request $request)
     {
-        //
-        $input = $request->all();
-        if($img = $request->file('image')) {
-            $name = $img->getClientOriginalName();
-            $img->move('images/posts', $name);
 
-            $photo = new Photo();
-            $photo->description = "No description";
-            $photo->post_id = 1;
-            $photo->path = "images/posts/".$name;
-            $photo->save();
+        if($request->hasFile('image')) {
+            $input = $request->file('image');
+            echo "<br>" . "=======>" . sizeof($input);
 
-            echo "successfully uploaded"."<br>";
+            foreach ($input as $image) {
+                echo "<br>" . "=======>" . $image->getClientOriginalName();
+            }
+
+            $pstArr = Post::all();
+            $len = sizeof($pstArr);
+
+            //echo "<br>"."=======>";
+            if ($len == 0) $postId = 1;
+            else $postId = $pstArr[$len - 1]->id + 1;
+
+            $cnt = 1;
+            foreach ($input as $img) {
+                $ext = $img->getClientOriginalExtension();
+
+                //echo "<br>"."=======>";
+                //echo $ext."<br>";
+
+                if ($ext == 'jpg' || $ext == 'png') {
+                    $name = $cnt . "." . $img->getClientOriginalExtension();
+                    $cnt++;
+                    $img->move('images/posts/' . $postId, $name);
+
+                    $photo = new Photo();
+                    $photo->description = "No description";
+                    $photo->post_id = $postId;
+                    $photo->path = "images/posts/" . $postId . "/" . $name;
+                    //$photo->save();
+
+                    echo "successfully uploaded" . "<br>";
+                }
+            }
+
+            echo "Process terminated";
         }
-
-        echo "Process terminated";
     }
 
     /**
